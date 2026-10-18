@@ -1,0 +1,15 @@
+# Build output directories
+build/
+build_*/
+*.elf
+*.hex
+*.bin
+*.map
+
+# Editor and temporary files
+.vscode/
+*.swp
+*.bak
+*~
+.DS_Store
+Thumbs.db

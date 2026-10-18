@@ -1,0 +1,71 @@
+flowchart TB
+    %% ========================================================
+    %% 1. MIPI CSI-2 高速差動データ通信 (メイン)
+    %% ========================================================
+    subgraph MIPI_SECTION["【メイン】MIPI-CSI2 高速差動インターフェース (合計 560 Mbps)"]
+        direction LR
+
+        subgraph CAM_TX["OV5640 (カメラ送信部 TX)"]
+            direction TB
+            C_CLK["TX_CLK_P / TX_CLK_N<br/>(差動 クロックレーン)"]
+            C_D0["TX_D0_P / TX_D0_N<br/>(差動 データレーン0)"]
+            C_D1["TX_D1_P / TX_D1_N<br/>(差動 データレーン1)"]
+        end
+
+        subgraph RA_RX["RA8P1 (MCU受信部 RX)"]
+            direction TB
+            R_CLK["MIPI_CLK_P / MIPI_CLK_N<br/>(差動 クロック入力)"]
+            R_D0["MIPI_D0_P / MIPI_D0_N<br/>(差動 データ0入力)"]
+            R_D1["MIPI_D1_P / MIPI_D1_N<br/>(差動 データ1入力)"]
+        end
+
+        C_CLK ==>|"① クロックレーン: 差動 140 MHz DDR"| R_CLK
+        C_D0  ==>|"② データレーン0: 差動 280 Mbps"| R_D0
+        C_D1  ==>|"③ データレーン1: 差動 280 Mbps"| R_D1
+    end
+
+    %% ========================================================
+    %% 2. 制御・クロック・GPIO 信号線 (サブ)
+    %% ========================================================
+    subgraph CTRL_SECTION["【制御系】クロック供給 & カメラレジスタ制御インターフェース"]
+        direction LR
+
+        subgraph CAM_CTRL["OV5640 (制御・クロック端子)"]
+            direction TB
+            C_XCLK["XVCLK / XCLK<br/>(24MHz 外部クロック入力)"]
+            C_SCL["SIOC<br/>(SCCB クロック入力)"]
+            C_SDA["SIOD<br/>(SCCB 双方向データ)"]
+            C_RST["RESETB<br/>(Active-Low リセット)"]
+        end
+
+        subgraph RA_CTRL["RA8P1 (周辺機能・GPIO端子)"]
+            direction TB
+            R_XCLK["P501 (GTIOC12A)<br/>GPT12 タイマー出力 (24.0MHz)"]
+            R_SCL["IIC1_SCL (P401相当)<br/>I2C クロック出力"]
+            R_SDA["IIC1_SDA (P400相当)<br/>I2C 双方向データ"]
+            R_RST["P709 (GPIO)<br/>CAM_RESET 出力"]
+            R_EN["P108 (GPIO)<br/>MIPI_IF_EN (基板MUX切替 LOW)"]
+        end
+
+        C_XCLK <-.-|"④ 24.0 MHz マスタークロック (XCLK)"| R_XCLK
+        C_SCL  <-.-|"⑤ I2C SCL (カメラ制御クロック)"| R_SCL
+        C_SDA <-.->|"⑥ I2C SDA (双方向データ / スレーブ 0x3C)"| R_SDA
+        C_RST  <-.-|"⑦ CAM_RESET (Lowアクティブ)"| R_RST
+    end
+
+    MIPI_SECTION ~~~ CTRL_SECTION
+
+    %% ========================================================
+    %% スタイル定義
+    %% ========================================================
+    classDef mipiBox fill:#fffde7,stroke:#f57f17,stroke-width:2.5px,color:#b71c1c;
+    classDef ctrlBox fill:#f1f8e9,stroke:#33691e,stroke-width:2px,color:#1b5e20;
+    classDef camNode fill:#e3f2fd,stroke:#1565c0,stroke-width:1.5px,color:#0d47a1;
+    classDef raNode fill:#f3e5f5,stroke:#6a1b9a,stroke-width:1.5px,color:#4a148c;
+    classDef mipiPin fill:#fff9c4,stroke:#f57f17,stroke-width:2px,color:#bf360c;
+
+    class MIPI_SECTION mipiBox;
+    class CTRL_SECTION ctrlBox;
+    class CAM_TX,CAM_CTRL camNode;
+    class RA_RX,RA_CTRL raNode;
+    class C_CLK,C_D0,C_D1,R_CLK,R_D0,R_D1 mipiPin;

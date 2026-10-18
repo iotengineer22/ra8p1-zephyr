@@ -1,0 +1,36 @@
+/*
+ * Copyright (c) 2026
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+#ifndef __CAMERA_LAYER_CONFIG_H__
+#define __CAMERA_LAYER_CONFIG_H__
+
+#include <zephyr/kernel.h>
+#include <zephyr/sys/printk.h>
+#include "bsp_api.h"
+
+#define BOARD_RA8P1_EK               (1)
+#define CAM_PWDN_PIN                 BSP_IO_PORT_FF_PIN_FF
+
+#define CAMERA_IMAGE_PORTRAIT_ENABLE (0)
+#define CAMERA_ACTIVE_IMAGE_WIDTH    (320)
+#define CAMERA_ACTIVE_IMAGE_HEIGHT   (240)
+#define CAMERA_CAPTURE_IMAGE_WIDTH   (CAMERA_ACTIVE_IMAGE_WIDTH)
+#define CAMERA_CAPTURE_IMAGE_HEIGHT  (CAMERA_ACTIVE_IMAGE_HEIGHT)
+
+#define CAMERA_IMAGE_BYTE_PER_PIXEL  (2) // 2: RGB565 / YUV422
+
+#define CAMERA_CONFIG_WRITE_VERIFY   (1)
+#define DEBUG_CAMERA_I2C_COMM_OUTPUT (0)
+
+#define CONFIG_BRIGHTNESS_ZERO       (4)
+#define CONFIG_CONTRAST_ZERO         (4)
+#define CAMERA_CONFIG_BRIGHTNESS     (CONFIG_BRIGHTNESS_ZERO)
+#define CAMERA_CONFIG_CONTRAST       (CONFIG_CONTRAST_ZERO)
+
+#define CAMERA_I2C_DEBUG(fn_, ...)   printk(fn_, ##__VA_ARGS__)
+
+#define IMAGE_BUFFER_PADDING (CAMERA_ACTIVE_IMAGE_WIDTH * CAMERA_IMAGE_BYTE_PER_PIXEL * 10)
+
+#endif /* __CAMERA_LAYER_CONFIG_H__ */

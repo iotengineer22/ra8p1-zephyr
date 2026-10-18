@@ -1,0 +1,34 @@
+# =========================================================================
+# Git Ignore Rules for Zephyr RTOS & Renesas RA8P1 Projects
+# =========================================================================
+
+# Build Artifact Directories (West, CMake, Ninja output)
+**/build/
+**/CMakeCache.txt
+**/CMakeFiles/
+**/*.ninja
+**/.ninja_*
+**/cmake_install.cmake
+
+# Tool Logs & System Files
+*.log
+**/JLinkLog.log
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & Editor Local Settings (User-specific)
+.vscode/
+.idea/
+*.swp
+*~
+
+# Compiled Object & Intermediate Files
+**/*.o
+**/*.obj
+**/*.d
+**/*.map
+
+# Python cache
+**/__pycache__/
+*.pyc

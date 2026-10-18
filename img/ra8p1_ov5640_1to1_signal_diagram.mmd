@@ -1,0 +1,62 @@
+flowchart LR
+    subgraph CAM["OV5640 カメラモジュール"]
+        direction TB
+        C1["TX_CLK_P / TX_CLK_N<br/>(差動 クロック出力)"]
+        C2["TX_D0_P / TX_D0_N<br/>(差動 データ0出力)"]
+        C3["TX_D1_P / TX_D1_N<br/>(差動 データ1出力)"]
+        C4["XVCLK / XCLK<br/>(24MHz クロック入力)"]
+        C5["SIOC<br/>(SCCB クロック入力)"]
+        C6["SIOD<br/>(SCCB 双方向データ)"]
+        C7["RESETB<br/>(Active-Low リセット)"]
+        C8["基板上 MIPI MUX<br/>(カメラ選択入力)"]
+    end
+
+    subgraph RA8P1["ルネサス RA8P1 マイコン"]
+        direction TB
+        R1["MIPI_CLK_P / MIPI_CLK_N<br/>(D-PHY RX クロック入力)"]
+        R2["MIPI_D0_P / MIPI_D0_N<br/>(D-PHY RX データ0入力)"]
+        R3["MIPI_D1_P / MIPI_D1_N<br/>(D-PHY RX データ1入力)"]
+        R4["P501 (GTIOC12A)<br/>GPT12 タイマー出力 (24.0MHz)"]
+        R5["IIC1_SCL (P401相当)<br/>I2C クロック出力"]
+        R6["IIC1_SDA (P400相当)<br/>I2C 双方向データ"]
+        R7["P709 (GPIO)<br/>CAM_RESET 出力"]
+        R8["P108 (GPIO)<br/>MIPI_IF_EN (基板MUX有効化 LOW)"]
+    end
+
+    %% ==========================================
+    %% 1対1 信号線接続
+    %% ==========================================
+    %% 1. MIPI CSI-2 差動高速ペア (OV5640 -> RA8P1)
+    C1 ==>|"① 140 MHz DDR 差動クロック"| R1
+    C2 ==>|"② 280 Mbps 差動データレーン0"| R2
+    C3 ==>|"③ 280 Mbps 差動データレーン1"| R3
+
+    %% 2. クロック供給 (RA8P1 -> OV5640)
+    R4 -->|"④ 24.0 MHz マスタークロック (XCLK)"| C4
+
+    %% 3. I2C / SCCB 制御線
+    R5 -->|"⑤ I2C SCL (カメラ制御クロック)"| C5
+    R6 <-->|"⑥ I2C SDA (双方向データ / スレーブ 0x3C)"| C6
+
+    %% 4. GPIO 制御線 (RA8P1 -> OV5640 / MUX)
+    R7 -->|"⑦ CAM_RESET (Lowアクティブ)"| C7
+    R8 -->|"⑧ MIPI_IF_EN (Low出力でカメラ側に切替)"| C8
+
+    %% ==========================================
+    %% スタイル定義
+    %% ==========================================
+    classDef camStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:2.5px,color:#0d47a1;
+    classDef raStyle fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2.5px,color:#4a148c;
+
+    classDef mipiPin fill:#fff9c4,stroke:#f57f17,stroke-width:2px,color:#bf360c;
+    classDef clkPin fill:#e0f7fa,stroke:#00838f,stroke-width:1.5px,color:#006064;
+    classDef i2cPin fill:#e8f5e9,stroke:#2e7d32,stroke-width:1.5px,color:#1b5e20;
+    classDef gpioPin fill:#fbe9e7,stroke:#d84315,stroke-width:1.5px,color:#b71c1c;
+
+    class CAM camStyle;
+    class RA8P1 raStyle;
+
+    class C1,C2,C3,R1,R2,R3 mipiPin;
+    class C4,R4 clkPin;
+    class C5,C6,R5,R6 i2cPin;
+    class C7,C8,R7,R8 gpioPin;

@@ -1,0 +1,113 @@
+flowchart LR
+    %% ==========================================
+    %% 1. OV5640 Camera Module
+    %% ==========================================
+    subgraph CAM["OmniVision OV5640 カメラモジュール"]
+        direction TB
+
+        subgraph CAM_CORE["センサコア & ISP (画像信号処理)"]
+            PXL["&nbsp;&nbsp;500万画素 CMOS アレイ&nbsp;&nbsp;<br/>(2592 × 1944)"]
+            ISP["&nbsp;&nbsp;ISP パイプライン&nbsp;&nbsp;<br/>(AE / AWB / デモザイク)"]
+            SCALE["&nbsp;&nbsp;ウィンドウ & スケーラ&nbsp;&nbsp;<br/>(320 × 240 QVGA)"]
+            FMT["&nbsp;&nbsp;出力フォーマッタ&nbsp;&nbsp;<br/>(YUV422 8-bit YUYV)"]
+
+            PXL --> ISP
+            ISP --> SCALE
+            SCALE --> FMT
+        end
+
+        subgraph CAM_CLK_CTRL["クロック & 制御ブロック"]
+            PLL["&nbsp;&nbsp;&nbsp;&nbsp;内部 PLL 回路&nbsp;&nbsp;&nbsp;&nbsp;<br/>(入力 24MHz → VCO 1120MHz<br/>→ 内部 140MHz DDR / 280Mbps)"]
+            SCCB["&nbsp;&nbsp;&nbsp;&nbsp;SCCB / I2C スレーブ&nbsp;&nbsp;&nbsp;&nbsp;<br/>(スレーブAddr: 0x3C / 0x78)"]
+            PWR["&nbsp;&nbsp;電源 & リセット制御回路&nbsp;&nbsp;<br/>(PWDN / RESETB)"]
+        end
+
+        subgraph CAM_TX["MIPI D-PHY 送信回路 (TX)"]
+            TX_CLK["&nbsp;&nbsp;Clock Lane TX&nbsp;&nbsp;<br/>(差動 140 MHz DDR)"]
+            TX_D0["&nbsp;&nbsp;Data Lane 0 TX&nbsp;&nbsp;<br/>(差動 280 Mbps)"]
+            TX_D1["&nbsp;&nbsp;Data Lane 1 TX&nbsp;&nbsp;<br/>(差動 280 Mbps)"]
+        end
+
+        FMT --> CAM_TX
+        PLL --> CAM_TX
+    end
+
+    %% ==========================================
+    %% 2. Interconnect / Physical Interface
+    %% ==========================================
+    subgraph INTERCONNECT["物理結線 (FPC / ボード配線)"]
+        direction TB
+        BUS_CSI["&nbsp;&nbsp;&nbsp;&nbsp;【MIPI CSI-2 差動高速バス】&nbsp;&nbsp;&nbsp;&nbsp;<br/>・MIPI_CLK_P / N (140MHz DDR)<br/>・MIPI_D0_P / N (280Mbps)<br/>・MIPI_D1_P / N (280Mbps)<br/>※合計物理リンク帯域: 560 Mbps"]
+        BUS_XCLK["&nbsp;&nbsp;【リファレンスクロック】&nbsp;&nbsp;<br/>・XCLK (24.0 MHz 矩形波)"]
+        BUS_I2C["&nbsp;&nbsp;【制御バス (I2C / SCCB)】&nbsp;&nbsp;<br/>・I2C SCL (クロック)<br/>・I2C SDA (データ)"]
+        BUS_GPIO["&nbsp;&nbsp;【制御 GPIO】&nbsp;&nbsp;<br/>・CAM_RESET (Lowアクティブ)<br/>・CAM_PWDN (パワーダウン)"]
+    end
+
+    %% ==========================================
+    %% 3. Renesas RA8P1 MCU
+    %% ==========================================
+    subgraph RA8P1["ルネサス RA8P1 マイコン (Cortex-M85 @ 480MHz)"]
+        direction TB
+
+        subgraph RA_MIPI["MIPI 受信 & キャプチャサブシステム"]
+            RX_DPHY["&nbsp;&nbsp;&nbsp;&nbsp;MIPI D-PHY 受信回路 (RX)&nbsp;&nbsp;&nbsp;&nbsp;<br/>・クロック 1レーン + データ 2レーン<br/>・LP / HS 自動ステート遷移"]
+            CSI_HOST["&nbsp;&nbsp;&nbsp;&nbsp;MIPI CSI-2 ホストコントローラ&nbsp;&nbsp;&nbsp;&nbsp;<br/>・パケット解析 / ECC・CRC エラー検査<br/>・仮想チャネル: VC0<br/>・データタイプ: 0x1E (YUV422 8-bit)"]
+            VIN["&nbsp;&nbsp;&nbsp;&nbsp;VIN (Video Input インターフェース)&nbsp;&nbsp;&nbsp;&nbsp;<br/>・同期信号検出 (HSYNC / VSYNC)<br/>・画像クリッピング (320 × 240)"]
+            VIN_DMA["&nbsp;&nbsp;&nbsp;&nbsp;VIN バスマスタ DMA&nbsp;&nbsp;&nbsp;&nbsp;<br/>・SRAM へのダイレクトフレーム転送"]
+
+            RX_DPHY --> CSI_HOST
+            CSI_HOST --> VIN
+            VIN --> VIN_DMA
+        end
+
+        subgraph RA_PERIPH["クロック & 周辺制御ブロック"]
+            GPT12["&nbsp;&nbsp;&nbsp;&nbsp;GPT12 タイマー (ch12 / 端子 P501)&nbsp;&nbsp;&nbsp;&nbsp;<br/>・24.0 MHz クロック生成"]
+            I2C_MST["&nbsp;&nbsp;&nbsp;&nbsp;IIC / SCI (I2C マスタ)&nbsp;&nbsp;&nbsp;&nbsp;<br/>・カメラ初期化 & レジスタ制御"]
+            GPIO_CTRL["&nbsp;&nbsp;&nbsp;&nbsp;GPIO ポート制御&nbsp;&nbsp;&nbsp;&nbsp;<br/>・RESETB / PWDN 端子駆動"]
+        end
+
+        subgraph RA_SYS["システムバス & メモリ / アプリケーション"]
+            AXI_BUS["&nbsp;&nbsp;&nbsp;&nbsp;AXI / AHB 高速システムバス&nbsp;&nbsp;&nbsp;&nbsp;"]
+            SRAM["&nbsp;&nbsp;&nbsp;&nbsp;システム SRAM (フレームバッファ)&nbsp;&nbsp;&nbsp;&nbsp;<br/>・320 × 240 YUV422 (153.6 KB / 面)<br/>・ダブルバッファ (FB0 / FB1)"]
+            CPU["&nbsp;&nbsp;&nbsp;&nbsp;Arm Cortex-M85 (480 MHz)&nbsp;&nbsp;&nbsp;&nbsp;<br/>・Helium MVE / Zephyr RTOS<br/>・画像認識 / AI推論 (YOLOFace / NPU)"]
+            DISP_SYS["&nbsp;&nbsp;&nbsp;&nbsp;Dave2D (DRW) & GLCDC&nbsp;&nbsp;&nbsp;&nbsp;<br/>・2D描画アクセラレータ<br/>・LCD ディスプレイ表示 (480 × 272)"]
+
+            AXI_BUS --> SRAM
+            SRAM --> CPU
+            SRAM --> DISP_SYS
+        end
+
+        VIN_DMA --> AXI_BUS
+    end
+
+    %% ==========================================
+    %% Inter-subgraph Connections
+    %% ==========================================
+    TX_CLK --> BUS_CSI
+    TX_D0 --> BUS_CSI
+    TX_D1 --> BUS_CSI
+    BUS_CSI --> RX_DPHY
+
+    GPT12 -->|"P501 (24.0MHz)"| BUS_XCLK
+    BUS_XCLK -->|"XCLK 入力"| PLL
+
+    I2C_MST <-->|"SCL / SDA"| BUS_I2C
+    BUS_I2C <-->|"SCCB"| SCCB
+
+    GPIO_CTRL -->|"RESET / PWDN"| BUS_GPIO
+    BUS_GPIO -->|"制御信号"| PWR
+
+    %% ==========================================
+    %% Styling
+    %% ==========================================
+    classDef camStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:2.5px,color:#0d47a1;
+    classDef interStyle fill:#fff8e1,stroke:#f57f17,stroke-width:2.5px,color:#e65100;
+    classDef raStyle fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2.5px,color:#4a148c;
+    classDef blockStyle fill:#ffffff,stroke:#37474f,stroke-width:1.5px,color:#212121;
+    classDef busStyle fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#004d40;
+
+    class CAM camStyle;
+    class INTERCONNECT interStyle;
+    class RA8P1 raStyle;
+    class PXL,ISP,SCALE,FMT,PLL,SCCB,PWR,TX_CLK,TX_D0,TX_D1,RX_DPHY,CSI_HOST,VIN,VIN_DMA,GPT12,I2C_MST,GPIO_CTRL,AXI_BUS,SRAM,CPU,DISP_SYS blockStyle;
+    class BUS_CSI,BUS_XCLK,BUS_I2C,BUS_GPIO busStyle;

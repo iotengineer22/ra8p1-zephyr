@@ -1,0 +1,47 @@
+flowchart TD
+    subgraph RA8P1["ルネサス RA8P1 マイコン (ホスト側)"]
+        direction LR
+        R1["MIPI_CLK_P / N<br/>(D-PHY クロック)"]
+        R2["MIPI_D0_P / N<br/>(データレーン0)"]
+        R3["MIPI_D1_P / N<br/>(データレーン1)"]
+        R4["P501 (GTIOC12A)<br/>GPT12 タイマー"]
+        R5["IIC1_SCL<br/>(I2C クロック)"]
+        R6["IIC1_SDA<br/>(I2C 双方向)"]
+        R7["P709 (GPIO)<br/>CAM_RESET"]
+        R8["P108 (GPIO)<br/>MIPI_IF_EN"]
+    end
+
+    subgraph CAM["OmniVision OV5640 (カメラモジュール側)"]
+        direction LR
+        C1["TX_CLK_P / N<br/>(差動 クロック)"]
+        C2["TX_D0_P / N<br/>(差動 データ0)"]
+        C3["TX_D1_P / N<br/>(差動 データ1)"]
+        C4["XVCLK / XCLK<br/>(24MHz クロック)"]
+        C5["SIOC<br/>(SCCB クロック)"]
+        C6["SIOD<br/>(SCCB 双方向)"]
+        C7["RESETB<br/>(Active-Low)"]
+        C8["基板上 MIPI MUX<br/>(カメラ選択)"]
+    end
+
+    R1 ---|"▲<br/>① 140MHz DDR<br/>差動クロック<br/>│"| C1
+    R2 ---|"▲<br/>② 280Mbps<br/>差動データ0<br/>│"| C2
+    R3 ---|"▲<br/>③ 280Mbps<br/>差動データ1<br/>│"| C3
+    R4 ---|"│<br/>④ 24.0MHz<br/>マスタークロック<br/>▼"| C4
+    R5 ---|"│<br/>⑤ I2C SCL<br/>カメラクロック<br/>▼"| C5
+    R6 ---|"▲<br/>⑥ I2C SDA<br/>双方向 (0x3C)<br/>▼"| C6
+    R7 ---|"│<br/>⑦ CAM_RESET<br/>Lowアクティブ<br/>▼"| C7
+    R8 ---|"│<br/>⑧ MIPI_IF_EN<br/>基板MUX切替<br/>▼"| C8
+
+    classDef raStyle fill:#f3e5f5,stroke:#6a1b9a,stroke-width:3px,color:#4a148c;
+    classDef camStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:3px,color:#0d47a1;
+    classDef mipiPin fill:#fff9c4,stroke:#f57f17,stroke-width:2px,color:#bf360c;
+    classDef clkPin fill:#e0f7fa,stroke:#00838f,stroke-width:1.5px,color:#006064;
+    classDef i2cPin fill:#e8f5e9,stroke:#2e7d32,stroke-width:1.5px,color:#1b5e20;
+    classDef gpioPin fill:#fbe9e7,stroke:#d84315,stroke-width:1.5px,color:#b71c1c;
+
+    class RA8P1 raStyle;
+    class CAM camStyle;
+    class R1,R2,R3,C1,C2,C3 mipiPin;
+    class R4,C4 clkPin;
+    class R5,R6,C5,C6 i2cPin;
+    class R7,R8,C7,C8 gpioPin;

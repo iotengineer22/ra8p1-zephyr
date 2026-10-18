@@ -1,0 +1,74 @@
+flowchart TD
+    subgraph S1["① MIPI CSI-2 差動クロックレーン (140 MHz DDR)"]
+        direction LR
+        S1_R["RA8P1: MIPI_CLK_P / N<br/>(D-PHY RX クロック入力)"]
+        S1_C["OV5640: TX_CLK_P / N<br/>(差動 クロック出力)"]
+        S1_R ---|"◀──────────────── 140 MHz DDR クロック ────────────────"| S1_C
+    end
+
+    subgraph S2["② MIPI CSI-2 差動データレーン0 (280 Mbps)"]
+        direction LR
+        S2_R["RA8P1: MIPI_D0_P / N<br/>(D-PHY RX データ0入力)"]
+        S2_C["OV5640: TX_D0_P / N<br/>(差動 データ0出力)"]
+        S2_R ---|"◀──────────────── 280 Mbps 映像パケットデータ ──────────"| S2_C
+    end
+
+    subgraph S3["③ MIPI CSI-2 差動データレーン1 (280 Mbps)"]
+        direction LR
+        S3_R["RA8P1: MIPI_D1_P / N<br/>(D-PHY RX データ1入力)"]
+        S3_C["OV5640: TX_D1_P / N<br/>(差動 データ1出力)"]
+        S3_R ---|"◀──────────────── 280 Mbps 映像パケットデータ ──────────"| S3_C
+    end
+
+    subgraph S4["④ リファレンスクロック (24.0 MHz)"]
+        direction LR
+        S4_R["RA8P1: P501 (GTIOC12A)<br/>GPT12 タイマー出力"]
+        S4_C["OV5640: XVCLK / XCLK<br/>(24.0 MHz 外部クロック入力)"]
+        S4_R ---|"──────────────── 24.0 MHz 矩形波マスタークロック ───────▶"| S4_C
+    end
+
+    subgraph S5["⑤ I2C / SCCB クロック線"]
+        direction LR
+        S5_R["RA8P1: IIC1_SCL (P401相当)<br/>I2C クロック出力"]
+        S5_C["OV5640: SIOC<br/>(SCCB クロック入力)"]
+        S5_R ---|"──────────────── カメラレジスタ設定用クロック ──────────▶"| S5_C
+    end
+
+    subgraph S6["⑥ I2C / SCCB 双方向データ線"]
+        direction LR
+        S6_R["RA8P1: IIC1_SDA (P400相当)<br/>I2C 双方向データ"]
+        S6_C["OV5640: SIOD<br/>(SCCB 双方向データ)"]
+        S6_R ---|"◀─────────────── 双方向レジスタデータ (0x3C) ───────────▶"| S6_C
+    end
+
+    subgraph S7["⑦ ハードウェアリセット線"]
+        direction LR
+        S7_R["RA8P1: P709 (GPIO)<br/>CAM_RESET 出力"]
+        S7_C["OV5640: RESETB<br/>(Active-Low リセット入力)"]
+        S7_R ---|"──────────────── ハードウェアリセット (Lowアクティブ) ───▶"| S7_C
+    end
+
+    subgraph S8["⑧ 基板マルチプレクサ制御線"]
+        direction LR
+        S8_R["RA8P1: P108 (GPIO)<br/>MIPI_IF_EN 出力"]
+        S8_C["基板上 MIPI MUX<br/>(カメラ側パス有効化)"]
+        S8_R ---|"──────────────── マルチプレクサ切替 (Low出力でカメラ選択) ─▶"| S8_C
+    end
+
+    S1 ~~~ S2 ~~~ S3 ~~~ S4 ~~~ S5 ~~~ S6 ~~~ S7 ~~~ S8
+
+    classDef mipiGroup fill:#fffde7,stroke:#f57f17,stroke-width:2.5px,color:#b71c1c;
+    classDef clkGroup fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:#006064;
+    classDef i2cGroup fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20;
+    classDef gpioGroup fill:#fbe9e7,stroke:#d84315,stroke-width:2px,color:#b71c1c;
+
+    classDef raPin fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#4a148c;
+    classDef camPin fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#0d47a1;
+
+    class S1,S2,S3 mipiGroup;
+    class S4 clkGroup;
+    class S5,S6 i2cGroup;
+    class S7,S8 gpioGroup;
+
+    class S1_R,S2_R,S3_R,S4_R,S5_R,S6_R,S7_R,S8_R raPin;
+    class S1_C,S2_C,S3_C,S4_C,S5_C,S6_C,S7_C,S8_C camPin;

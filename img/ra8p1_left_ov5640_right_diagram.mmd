@@ -1,0 +1,61 @@
+flowchart LR
+    %% ==========================================
+    %% 左側: ルネサス RA8P1 マイコン
+    %% ==========================================
+    subgraph RA8P1["ルネサス RA8P1 マイコン (ホスト)"]
+        direction TB
+        R1["MIPI_CLK_P / N<br/>(D-PHY RX クロック入力)"]
+        R2["MIPI_D0_P / N<br/>(D-PHY RX データ0入力)"]
+        R3["MIPI_D1_P / N<br/>(D-PHY RX データ1入力)"]
+        R4["P501 (GTIOC12A)<br/>GPT12 タイマー出力 (24MHz)"]
+        R5["IIC1_SCL (P401相当)<br/>I2C クロック出力"]
+        R6["IIC1_SDA (P400相当)<br/>I2C 双方向データ"]
+        R7["P709 (GPIO)<br/>CAM_RESET 出力"]
+        R8["P108 (GPIO)<br/>MIPI_IF_EN 出力 (LOW)"]
+    end
+
+    %% ==========================================
+    %% 右側: OV5640 カメラモジュール
+    %% ==========================================
+    subgraph CAM["OmniVision OV5640 (カメラモジュール)"]
+        direction TB
+        C1["TX_CLK_P / N<br/>(差動 クロック出力)"]
+        C2["TX_D0_P / N<br/>(差動 データ0出力)"]
+        C3["TX_D1_P / N<br/>(差動 データ1出力)"]
+        C4["XVCLK / XCLK<br/>(24MHz 外部クロック入力)"]
+        C5["SIOC<br/>(SCCB クロック入力)"]
+        C6["SIOD<br/>(SCCB 双方向データ)"]
+        C7["RESETB<br/>(Active-Low リセット)"]
+        C8["基板上 MIPI MUX<br/>(カメラ選択入力)"]
+    end
+
+    %% ==========================================
+    %% 1対1 完全ストレート接続 (水平・交差なし)
+    %% ==========================================
+    R1 ---|"◀──────── ① 差動 クロック (140 MHz DDR) ────────"| C1
+    R2 ---|"◀──────── ② 差動 データ0 (280 Mbps) ────────────"| C2
+    R3 ---|"◀──────── ③ 差動 データ1 (280 Mbps) ────────────"| C3
+    R4 ---|"──────── ④ 24.0 MHz マスタークロック (XCLK) ──────▶"| C4
+    R5 ---|"──────── ⑤ I2C SCL (カメラ制御クロック) ───────────▶"| C5
+    R6 ---|"◀───────▶ ⑥ I2C SDA (双方向データ / 0x3C) ─────────▶"| C6
+    R7 ---|"──────── ⑦ CAM_RESET (Lowアクティブ) ─────────────▶"| C7
+    R8 ---|"──────── ⑧ MIPI_IF_EN (基板MUX有効化 LOW) ────────▶"| C8
+
+    %% ==========================================
+    %% スタイル定義
+    %% ==========================================
+    classDef raStyle fill:#f3e5f5,stroke:#6a1b9a,stroke-width:3px,color:#4a148c;
+    classDef camStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:3px,color:#0d47a1;
+
+    classDef mipiPin fill:#fff9c4,stroke:#f57f17,stroke-width:2.5px,color:#bf360c;
+    classDef clkPin fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:#006064;
+    classDef i2cPin fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20;
+    classDef gpioPin fill:#fbe9e7,stroke:#d84315,stroke-width:2px,color:#b71c1c;
+
+    class RA8P1 raStyle;
+    class CAM camStyle;
+
+    class R1,R2,R3,C1,C2,C3 mipiPin;
+    class R4,C4 clkPin;
+    class R5,R6,C5,C6 i2cPin;
+    class R7,R8,C7,C8 gpioPin;
